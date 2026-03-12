@@ -15,7 +15,7 @@ One binary. Zero dashboards. A minimal cloud control layer that agents can drive
 </p>
 
 <p align="center">
-  <a href="#build">Build</a> &bull;
+  <a href="#install">Install</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
   <a href="https://github.com/basilysf1709/ship">GitHub</a> &bull;
   <a href="https://github.com/basilysf1709/ship/releases">Releases</a>
@@ -59,23 +59,29 @@ The goal is simple: give agents a tiny, deterministic interface for infrastructu
 go build -o ship
 ```
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/basilysf1709/ship/main/install.sh | sh
+```
+
 ## Quick Start
 
 ```bash
 export DIGITALOCEAN_TOKEN=...
 
-./ship server create --provider digitalocean
-./ship deploy
-./ship logs
-./ship server destroy
+ship server create --provider digitalocean
+ship deploy
+ship logs
+ship server destroy
 ```
 
 Provider selection:
 
 ```bash
-./ship server create --provider digitalocean
-./ship server create --provider hetzner
-./ship server create --provider vultr
+ship server create --provider digitalocean
+ship server create --provider hetzner
+ship server create --provider vultr
 ```
 
 ## Authentication
@@ -135,9 +141,9 @@ Default create settings by provider:
 Examples:
 
 ```bash
-./ship server create --provider digitalocean --region sfo3 --size s-1vcpu-2gb --image ubuntu-22-04-x64
-./ship server create --provider hetzner --region fsn1 --size cpx21 --image ubuntu-24.04
-./ship server create --provider vultr --region ord --size vc2-1c-2gb --image "Ubuntu 24.04 x64"
+ship server create --provider digitalocean --region sfo3 --size s-1vcpu-2gb --image ubuntu-22-04-x64
+ship server create --provider hetzner --region fsn1 --size cpx21 --image ubuntu-24.04
+ship server create --provider vultr --region ord --size vc2-1c-2gb --image "Ubuntu 24.04 x64"
 ```
 
 ## Deploy Flow
