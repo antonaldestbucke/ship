@@ -5,6 +5,7 @@ go 1.24.0
 require (
 	github.com/digitalocean/godo v1.132.0
 	github.com/hetznercloud/hcloud-go/v2 v2.36.0
+	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.8.1
 	github.com/vultr/govultr/v3 v3.28.1
 	golang.org/x/crypto v0.47.0

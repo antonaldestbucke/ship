@@ -3,6 +3,7 @@ package shipinternal
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -27,6 +28,9 @@ func WaitForSSH(ctx context.Context, user, host string, interval time.Duration) 
 		if err == nil {
 			return client, nil
 		}
+		if isSSHAuthError(err) {
+			return nil, fmt.Errorf("SSH authentication failed for %s@%s; ensure this machine's SSH key is registered with the provider: %w", user, host, err)
+		}
 
 		select {
 		case <-ctx.Done():
@@ -34,6 +38,17 @@ func WaitForSSH(ctx context.Context, user, host string, interval time.Duration) 
 		case <-time.After(interval):
 		}
 	}
+}
+
+func isSSHAuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, ssh.ErrNoAuth) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "unable to authenticate") || strings.Contains(msg, "permission denied")
 }
 
 func RunCommands(ctx context.Context, client *ssh.Client, commands []string) error {

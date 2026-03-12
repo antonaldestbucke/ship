@@ -94,12 +94,25 @@ ship server create --provider vultr
 
 You only need to set the token for the provider you are using.
 
+## Setup
+
+Before creating a server, make sure this machine has an SSH key available. `ship` will use a local SSH public key and automatically register it with the provider if needed.
+
+Recommended default setup:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
+ssh-add ~/.ssh/id_ed25519
+```
+
+If a matching local private key is not available, server creation can succeed but SSH bootstrap and deploy steps will fail.
+
 ## Requirements
 
 - Go
 - Docker installed locally
 - A `Dockerfile` in the current project
-- SSH keys already registered with the selected provider
+- A local SSH key on this machine, either in `~/.ssh/` or loaded in `ssh-agent`
 
 ## Usage
 

@@ -25,17 +25,13 @@ func (vultrProvider) CreateServer(ctx context.Context, req CreateRequest) (Serve
 		return ServerState{}, err
 	}
 
-	sshKeys, err := listAllVultrSSHKeys(ctx, client)
+	localKey, err := DiscoverLocalSSHKey()
 	if err != nil {
-		return ServerState{}, fmt.Errorf("list Vultr SSH keys: %w", err)
+		return ServerState{}, err
 	}
-	if len(sshKeys) == 0 {
-		return ServerState{}, errors.New("no SSH keys found in Vultr account")
-	}
-
-	sshKeyIDs := make([]string, 0, len(sshKeys))
-	for _, key := range sshKeys {
-		sshKeyIDs = append(sshKeyIDs, key.ID)
+	keyID, err := ensureVultrSSHKey(ctx, client, localKey)
+	if err != nil {
+		return ServerState{}, err
 	}
 
 	osID, err := findVultrOSID(ctx, client, firstNonEmpty(req.Image, "Ubuntu 22.04 x64"))
@@ -49,7 +45,7 @@ func (vultrProvider) CreateServer(ctx context.Context, req CreateRequest) (Serve
 		Label:    req.Name,
 		Hostname: req.Name,
 		OsID:     osID,
-		SSHKeys:  sshKeyIDs,
+		SSHKeys:  []string{keyID},
 	})
 	if err != nil {
 		return ServerState{}, fmt.Errorf("create Vultr instance: %w", err)
@@ -66,6 +62,27 @@ func (vultrProvider) CreateServer(ctx context.Context, req CreateRequest) (Serve
 		IP:       ip,
 		SSHUser:  "root",
 	}, nil
+}
+
+func ensureVultrSSHKey(ctx context.Context, client *govultr.Client, localKey LocalSSHKey) (string, error) {
+	keys, err := listAllVultrSSHKeys(ctx, client)
+	if err != nil {
+		return "", fmt.Errorf("list Vultr SSH keys: %w", err)
+	}
+	for _, key := range keys {
+		if strings.TrimSpace(key.SSHKey) == localKey.PublicKey {
+			return key.ID, nil
+		}
+	}
+
+	key, _, err := client.SSHKey.Create(ctx, &govultr.SSHKeyReq{
+		Name:   "ship-" + localKey.Name,
+		SSHKey: localKey.PublicKey,
+	})
+	if err != nil {
+		return "", fmt.Errorf("create Vultr SSH key: %w", err)
+	}
+	return key.ID, nil
 }
 
 func (vultrProvider) DestroyServer(ctx context.Context, state ServerState) error {

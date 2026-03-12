@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -51,12 +52,13 @@ func (hetznerProvider) CreateServer(ctx context.Context, req CreateRequest) (Ser
 		return ServerState{}, fmt.Errorf("Hetzner image %q not found", imageName)
 	}
 
-	sshKeys, err := client.SSHKey.All(ctx)
+	localKey, err := DiscoverLocalSSHKey()
 	if err != nil {
-		return ServerState{}, fmt.Errorf("list Hetzner SSH keys: %w", err)
+		return ServerState{}, err
 	}
-	if len(sshKeys) == 0 {
-		return ServerState{}, errors.New("no SSH keys found in Hetzner account")
+	sshKey, err := ensureHetznerSSHKey(ctx, client, localKey)
+	if err != nil {
+		return ServerState{}, err
 	}
 
 	createResult, _, err := client.Server.Create(ctx, hcloud.ServerCreateOpts{
@@ -64,7 +66,7 @@ func (hetznerProvider) CreateServer(ctx context.Context, req CreateRequest) (Ser
 		ServerType: serverType,
 		Image:      image,
 		Location:   location,
-		SSHKeys:    sshKeys,
+		SSHKeys:    []*hcloud.SSHKey{sshKey},
 	})
 	if err != nil {
 		return ServerState{}, fmt.Errorf("create Hetzner server: %w", err)
@@ -85,6 +87,27 @@ func (hetznerProvider) CreateServer(ctx context.Context, req CreateRequest) (Ser
 		IP:       ip,
 		SSHUser:  "root",
 	}, nil
+}
+
+func ensureHetznerSSHKey(ctx context.Context, client *hcloud.Client, localKey LocalSSHKey) (*hcloud.SSHKey, error) {
+	keys, err := client.SSHKey.All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list Hetzner SSH keys: %w", err)
+	}
+	for _, key := range keys {
+		if key.Fingerprint == localKey.FingerprintMD5 || strings.TrimSpace(key.PublicKey) == localKey.PublicKey {
+			return key, nil
+		}
+	}
+
+	key, _, err := client.SSHKey.Create(ctx, hcloud.SSHKeyCreateOpts{
+		Name:      "ship-" + localKey.Name,
+		PublicKey: localKey.PublicKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create Hetzner SSH key: %w", err)
+	}
+	return key, nil
 }
 
 func (hetznerProvider) DestroyServer(ctx context.Context, state ServerState) error {

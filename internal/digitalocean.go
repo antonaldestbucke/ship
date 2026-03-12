@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/digitalocean/godo"
@@ -24,17 +25,13 @@ func (digitalOceanProvider) CreateServer(ctx context.Context, req CreateRequest)
 		return ServerState{}, err
 	}
 
-	keys, _, err := client.Keys.List(ctx, &godo.ListOptions{PerPage: 200})
+	localKey, err := DiscoverLocalSSHKey()
 	if err != nil {
-		return ServerState{}, fmt.Errorf("list DigitalOcean SSH keys: %w", err)
+		return ServerState{}, err
 	}
-	if len(keys) == 0 {
-		return ServerState{}, errors.New("no SSH keys found in DigitalOcean account")
-	}
-
-	sshKeys := make([]godo.DropletCreateSSHKey, 0, len(keys))
-	for _, key := range keys {
-		sshKeys = append(sshKeys, godo.DropletCreateSSHKey{ID: key.ID})
+	keyID, err := ensureDigitalOceanSSHKey(ctx, client, localKey)
+	if err != nil {
+		return ServerState{}, err
 	}
 
 	droplet, _, err := client.Droplets.Create(ctx, &godo.DropletCreateRequest{
@@ -44,7 +41,7 @@ func (digitalOceanProvider) CreateServer(ctx context.Context, req CreateRequest)
 		Image: godo.DropletCreateImage{
 			Slug: firstNonEmpty(req.Image, "ubuntu-22-04-x64"),
 		},
-		SSHKeys: sshKeys,
+		SSHKeys: []godo.DropletCreateSSHKey{{ID: keyID}},
 	})
 	if err != nil {
 		return ServerState{}, fmt.Errorf("create DigitalOcean droplet: %w", err)
@@ -61,6 +58,27 @@ func (digitalOceanProvider) CreateServer(ctx context.Context, req CreateRequest)
 		IP:       ip,
 		SSHUser:  "root",
 	}, nil
+}
+
+func ensureDigitalOceanSSHKey(ctx context.Context, client *godo.Client, localKey LocalSSHKey) (int, error) {
+	keys, _, err := client.Keys.List(ctx, &godo.ListOptions{PerPage: 200})
+	if err != nil {
+		return 0, fmt.Errorf("list DigitalOcean SSH keys: %w", err)
+	}
+	for _, key := range keys {
+		if key.Fingerprint == localKey.FingerprintMD5 || strings.TrimSpace(key.PublicKey) == localKey.PublicKey {
+			return key.ID, nil
+		}
+	}
+
+	key, _, err := client.Keys.Create(ctx, &godo.KeyCreateRequest{
+		Name:      "ship-" + localKey.Name,
+		PublicKey: localKey.PublicKey,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("create DigitalOcean SSH key: %w", err)
+	}
+	return key.ID, nil
 }
 
 func (digitalOceanProvider) DestroyServer(ctx context.Context, state ServerState) error {
