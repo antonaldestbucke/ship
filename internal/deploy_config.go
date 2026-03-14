@@ -34,6 +34,10 @@ type ResolvedDeployUpload struct {
 	Mode        os.FileMode
 }
 
+func (c DeployConfig) RequiresServer() bool {
+	return len(c.Uploads) > 0 || len(c.RemoteCommands) > 0
+}
+
 func LoadDeployConfig() (DeployConfig, error) {
 	data, err := os.ReadFile(projectConfigFile)
 	if err != nil {

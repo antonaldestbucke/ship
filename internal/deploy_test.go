@@ -184,3 +184,53 @@ func TestRunDoesNotDeletePreexistingCleanupTargetOnLocalFailure(t *testing.T) {
 		t.Fatalf("app.tar was removed after failed local phase: %v", err)
 	}
 }
+
+func TestRunCleansGeneratedArtifactWhenLaterLocalCommandFails(t *testing.T) {
+	originalLoadDeployConfig := loadDeployConfig
+	originalRunLocalCommand := runLocalCommand
+	defer func() {
+		loadDeployConfig = originalLoadDeployConfig
+		runLocalCommand = originalRunLocalCommand
+	}()
+
+	tempDir := t.TempDir()
+	originalWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	defer func() {
+		_ = os.Chdir(originalWD)
+	}()
+
+	loadDeployConfig = func() (DeployConfig, error) {
+		return DeployConfig{
+			LocalCommands: []string{
+				"build artifact",
+				"fail later",
+			},
+			CleanupLocal: []string{"release.tar.gz"},
+		}, nil
+	}
+	runLocalCommand = func(ctx context.Context, command string) error {
+		switch command {
+		case "build artifact":
+			return os.WriteFile("release.tar.gz", []byte("artifact"), 0o600)
+		case "fail later":
+			return errors.New("boom")
+		default:
+			t.Fatalf("unexpected command %q", command)
+			return nil
+		}
+	}
+
+	err = Run(context.Background(), Options{ServerIP: "1.2.3.4", User: "root"})
+	if err == nil {
+		t.Fatal("Run returned nil error")
+	}
+	if _, err := os.Stat(filepath.Join(tempDir, "release.tar.gz")); !os.IsNotExist(err) {
+		t.Fatalf("release.tar.gz still exists after failed local phase, stat err=%v", err)
+	}
+}

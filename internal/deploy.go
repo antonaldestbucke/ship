@@ -37,15 +37,16 @@ func Run(ctx context.Context, opts Options) error {
 	if err != nil {
 		return err
 	}
+	scheduledCleanupPaths := make(map[string]bool, len(cleanupPaths))
 
 	for _, command := range deployConfig.LocalCommands {
 		if err := runLocalCommand(ctx, command); err != nil {
 			return err
 		}
-	}
-
-	for _, cleanupPath := range cleanupCandidates(cleanupPaths, preexistingCleanupPaths) {
-		defer os.Remove(cleanupPath)
+		for _, cleanupPath := range cleanupCandidates(cleanupPaths, preexistingCleanupPaths, scheduledCleanupPaths) {
+			scheduledCleanupPaths[cleanupPath] = true
+			defer os.Remove(cleanupPath)
+		}
 	}
 
 	uploads, err := deployConfig.ResolvedUploads(".")
@@ -107,10 +108,13 @@ func existingPaths(paths []string) (map[string]bool, error) {
 	return existing, nil
 }
 
-func cleanupCandidates(paths []string, preexisting map[string]bool) []string {
+func cleanupCandidates(paths []string, preexisting map[string]bool, scheduled map[string]bool) []string {
 	var cleanup []string
 	for _, cleanupPath := range paths {
 		if preexisting[cleanupPath] {
+			continue
+		}
+		if scheduled[cleanupPath] {
 			continue
 		}
 		if _, err := os.Lstat(cleanupPath); err == nil {
