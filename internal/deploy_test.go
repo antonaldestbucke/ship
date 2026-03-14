@@ -2,6 +2,11 @@ package shipinternal
 
 import (
 	"context"
+	"errors"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,5 +54,133 @@ func TestRunLocalOnlyDeploySkipsSSH(t *testing.T) {
 	}
 	if ran[0] != "npm ci" || ran[1] != "npm run build" {
 		t.Fatalf("Run executed local commands %+v", ran)
+	}
+}
+
+func TestRunCreatesRemoteUploadDirectoriesBeforeCopy(t *testing.T) {
+	originalLoadDeployConfig := loadDeployConfig
+	originalRunLocalCommand := runLocalCommand
+	originalWaitForSSHClient := waitForSSHClient
+	originalCopyDeployFile := copyDeployFile
+	originalRunRemoteCommands := runRemoteCommands
+	originalCloseSSHClient := closeSSHClient
+	defer func() {
+		loadDeployConfig = originalLoadDeployConfig
+		runLocalCommand = originalRunLocalCommand
+		waitForSSHClient = originalWaitForSSHClient
+		copyDeployFile = originalCopyDeployFile
+		runRemoteCommands = originalRunRemoteCommands
+		closeSSHClient = originalCloseSSHClient
+	}()
+
+	tempDir := t.TempDir()
+	originalWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	defer func() {
+		_ = os.Chdir(originalWD)
+	}()
+
+	if err := os.WriteFile("release.tar.gz", []byte("artifact"), 0o600); err != nil {
+		t.Fatalf("write release.tar.gz: %v", err)
+	}
+
+	var events []string
+	loadDeployConfig = func() (DeployConfig, error) {
+		return DeployConfig{
+			Uploads: []DeployUpload{
+				{
+					Source:      "release.tar.gz",
+					Destination: "/opt/app/release.tar.gz",
+				},
+			},
+			RemoteCommands: []string{
+				"tar -xzf /opt/app/release.tar.gz -C /opt/app",
+			},
+		}, nil
+	}
+	runLocalCommand = func(ctx context.Context, command string) error {
+		t.Fatalf("runLocalCommand should not be called, got %q", command)
+		return nil
+	}
+	waitForSSHClient = func(ctx context.Context, user, host string, interval time.Duration) (*ssh.Client, error) {
+		events = append(events, "ssh")
+		return nil, nil
+	}
+	closeSSHClient = func(client *ssh.Client) error {
+		events = append(events, "close")
+		return nil
+	}
+	copyDeployFile = func(ctx context.Context, client *ssh.Client, localPath, remotePath string, mode os.FileMode) error {
+		events = append(events, "copy:"+remotePath)
+		return nil
+	}
+	runRemoteCommands = func(ctx context.Context, client *ssh.Client, commands []string) error {
+		events = append(events, "remote:"+strings.Join(commands, " && "))
+		return nil
+	}
+
+	err = Run(context.Background(), Options{ServerIP: "1.2.3.4", User: "root"})
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+
+	want := []string{
+		"ssh",
+		"remote:mkdir -p '/opt/app'",
+		"copy:/opt/app/release.tar.gz",
+		"remote:tar -xzf /opt/app/release.tar.gz -C /opt/app",
+		"close",
+	}
+	if !reflect.DeepEqual(events, want) {
+		t.Fatalf("Run events = %+v, want %+v", events, want)
+	}
+}
+
+func TestRunDoesNotDeletePreexistingCleanupTargetOnLocalFailure(t *testing.T) {
+	originalLoadDeployConfig := loadDeployConfig
+	originalRunLocalCommand := runLocalCommand
+	defer func() {
+		loadDeployConfig = originalLoadDeployConfig
+		runLocalCommand = originalRunLocalCommand
+	}()
+
+	tempDir := t.TempDir()
+	originalWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	defer func() {
+		_ = os.Chdir(originalWD)
+	}()
+
+	artifactPath := filepath.Join(tempDir, "app.tar")
+	if err := os.WriteFile(artifactPath, []byte("preexisting"), 0o600); err != nil {
+		t.Fatalf("write app.tar: %v", err)
+	}
+
+	loadDeployConfig = func() (DeployConfig, error) {
+		return DeployConfig{
+			LocalCommands: []string{"docker build -t app ."},
+			CleanupLocal:  []string{"app.tar"},
+		}, nil
+	}
+	runLocalCommand = func(ctx context.Context, command string) error {
+		return errors.New("boom")
+	}
+
+	err = Run(context.Background(), Options{ServerIP: "1.2.3.4", User: "root"})
+	if err == nil {
+		t.Fatal("Run returned nil error")
+	}
+	if _, err := os.Stat(artifactPath); err != nil {
+		t.Fatalf("app.tar was removed after failed local phase: %v", err)
 	}
 }
