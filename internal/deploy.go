@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -15,45 +14,62 @@ type Options struct {
 	User     string
 }
 
+var loadDeployConfig = LoadDeployConfig
+var runLocalCommand = runLocalShellCommand
+var waitForSSHClient = WaitForSSH
+var copyDeployFile = CopyFile
+var runRemoteCommands = RunCommands
+
 func Run(ctx context.Context, opts Options) error {
-	if err := runLocalCommand(ctx, "docker", "build", "-t", "app", "."); err != nil {
+	deployConfig, err := loadDeployConfig()
+	if err != nil {
 		return err
 	}
 
-	archivePath := filepath.Join(".", "app.tar")
-	if err := runLocalCommand(ctx, "docker", "save", "app", "-o", archivePath); err != nil {
+	for _, cleanupPath := range deployConfig.ResolvedCleanupPaths(".") {
+		defer os.Remove(cleanupPath)
+	}
+
+	for _, command := range deployConfig.LocalCommands {
+		if err := runLocalCommand(ctx, command); err != nil {
+			return err
+		}
+	}
+
+	uploads, err := deployConfig.ResolvedUploads(".")
+	if err != nil {
 		return err
 	}
-	defer os.Remove(archivePath)
 
-	client, err := WaitForSSH(ctx, opts.User, opts.ServerIP, 10*time.Second)
+	if len(uploads) == 0 && len(deployConfig.RemoteCommands) == 0 {
+		return nil
+	}
+
+	client, err := waitForSSHClient(ctx, opts.User, opts.ServerIP, 10*time.Second)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 
-	if err := CopyFile(ctx, client, archivePath, "/root/app.tar", 0o644); err != nil {
-		return err
+	for _, upload := range uploads {
+		if err := copyDeployFile(ctx, client, upload.Source, upload.Destination, upload.Mode); err != nil {
+			return err
+		}
 	}
 
-	if err := RunCommands(ctx, client, []string{
-		"docker load -i /root/app.tar",
-		"docker stop app || true",
-		"docker rm app || true",
-		"docker run -d --name app -p 80:80 app",
-	}); err != nil {
+	if err := runRemoteCommands(ctx, client, deployConfig.RemoteCommands); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func runLocalCommand(ctx context.Context, name string, args ...string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
+func runLocalShellCommand(ctx context.Context, command string) error {
+	cmd := exec.CommandContext(ctx, "sh", "-lc", command)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("run %s: %w", strings.Join(append([]string{name}, args...), " "), err)
+		return fmt.Errorf("run %s: %w", strings.TrimSpace(command), err)
 	}
 	return nil
 }
