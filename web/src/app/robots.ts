@@ -8,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
       },
     ],
-    sitemap: "https://shipinfra.dev/sitemap.xml",
+    sitemap: "https://tryship.win/sitemap.xml",
   };
 }

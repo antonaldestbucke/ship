@@ -1,4 +1,4 @@
-const BASE_URL = "https://shipinfra.dev";
+const BASE_URL = "https://tryship.win";
 
 interface BlogPostingProps {
   headline: string;

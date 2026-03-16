@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://shipinfra.dev";
+  const base = "https://tryship.win";
 
   return [
     {

@@ -9,7 +9,7 @@ const softwareJsonLd = {
   name: "Ship",
   description:
     "A lightweight infrastructure CLI for provisioning, deploying, and managing cloud servers. Built for AI coding agents.",
-  url: "https://shipinfra.dev",
+  url: "https://tryship.win",
   applicationCategory: "DeveloperApplication",
   operatingSystem: "macOS, Linux",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },

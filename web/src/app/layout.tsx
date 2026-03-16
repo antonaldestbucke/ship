@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const BASE_URL = "https://shipinfra.dev";
+const BASE_URL = "https://tryship.win";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
