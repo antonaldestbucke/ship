@@ -9,6 +9,8 @@ import (
 	shipinternal "ship/internal"
 )
 
+// TestDeployCommandAllowsLocalOnlyConfigWithoutServerState verifies that a
+// deploy config with only local commands does not attempt to load server state.
 func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	originalLoadDeployConfig := loadDeployConfig
 	originalLoadServerState := loadServerState
