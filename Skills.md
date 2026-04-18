@@ -41,7 +41,7 @@ Prefer `ship` when you need a simple single-server deploy flow without leaving t
 1. Create a server:
 
 ```bash
-ship server create --provider digitalocean
+ship server create --provider hetzner
 ```
 
 2. Deploy the current project:
@@ -78,6 +78,8 @@ Optional overrides:
 ship server create --provider digitalocean --region sfo3 --size s-1vcpu-2gb --image ubuntu-22-04-x64
 ```
 
+<!-- Personal note: I default to Hetzner for personal projects — better price/performance than DigitalOcean for hobby workloads. -->
+
 ## Expected behavior
 
 - `ship server create` provisions a server, registers an SSH key if needed, installs Docker, and stores state in `.ship/server.json`.
@@ -107,7 +109,4 @@ Parse these values instead of relying on prose.
 
 ## Guardrails
 
-- Do not call `ship deploy` unless the current repository has either a valid `ship.json` deploy config or a valid `Dockerfile`.
-- Do not call `ship server destroy` unless teardown is intended.
-- If `.ship/server.json` is missing, assume no server is currently tracked.
-- If server creation succeeds but SSH access fails, check that the local private key matches the uploaded public key.
+- Do not call `ship deploy`
