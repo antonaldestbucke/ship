@@ -50,8 +50,9 @@ Example:
 				return fmt.Errorf("no domains configured; use --domain or add proxy.domains to ship.json")
 			}
 
-			// Use a 15-minute timeout to give Caddy enough time to provision TLS certs
-			ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Minute)
+			// Use a 20-minute timeout to give Caddy enough time to provision TLS certs
+			// (increased from 15m since cert provisioning can be slow on some DNS providers)
+			ctx, cancel := context.WithTimeout(cmd.Context(), 20*time.Minute)
 			defer cancel()
 			state, client, err := currentServerClient(ctx, 30*time.Second)
 			if err != nil {
@@ -59,9 +60,8 @@ Example:
 			}
 			defer client.Close()
 
-			if err := configureProxy(ctx, client, proxy); err != nil 		}
-			return writeCommandOutput(cmd, fmt.Sprintf("STATUS=DOMAIN_CONFIGURED\nSERVER_IP=%s\n", state.IP), map[string]any{
-				"status":    "DOMAIN_CONFIGURED",
+			if err := configureProxy(ctx, client, proxy); err != nil {
+\n", state.IP),t			"status":    "DOMAIN_CONFIGURED",
 				"server_ip": state.IP,
 				"domains":   proxy.Domains,
 				"app_port":  proxy.EffectiveAppPort(),
