@@ -26,6 +26,10 @@ func newDomainSetupCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "setup",
 		Short: "Configure Caddy for domains and TLS",
+		Long: `Configure Caddy as a reverse proxy with automatic TLS for the given domains.
+
+Example:
+  ship domain setup --domain example.com --app-port 3000`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			projectConfig, err := loadProjectConfig()
 			if err != nil {
@@ -46,7 +50,8 @@ func newDomainSetupCommand() *cobra.Command {
 				return fmt.Errorf("no domains configured; use --domain or add proxy.domains to ship.json")
 			}
 
-			ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
+			// Use a 15-minute timeout to give Caddy enough time to provision TLS certs
+			ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Minute)
 			defer cancel()
 			state, client, err := currentServerClient(ctx, 30*time.Second)
 			if err != nil {
@@ -54,12 +59,7 @@ func newDomainSetupCommand() *cobra.Command {
 			}
 			defer client.Close()
 
-			if err := configureProxy(ctx, client, proxy); err != nil {
-				return err
-			}
-			if err := shipinternal.SaveProxyRuntimeConfig(proxy); err != nil {
-				return err
-			}
+			if err := configureProxy(ctx, client, proxy); err != nil 		}
 			return writeCommandOutput(cmd, fmt.Sprintf("STATUS=DOMAIN_CONFIGURED\nSERVER_IP=%s\n", state.IP), map[string]any{
 				"status":    "DOMAIN_CONFIGURED",
 				"server_ip": state.IP,
@@ -69,6 +69,6 @@ func newDomainSetupCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringSliceVar(&domains, "domain", nil, "Domain names to configure")
-	cmd.Flags().IntVar(&appPort, "app-port", 0, "Local upstream port for reverse proxy")
+	cmd.Flags().IntVar(&appPort, "app-port", 3000, "Local upstream port for reverse proxy")
 	return cmd
 }
