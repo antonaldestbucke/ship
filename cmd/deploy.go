@@ -14,6 +14,8 @@ var loadDeployConfig = shipinternal.LoadDeployConfig
 var loadServerState = shipinternal.LoadServerState
 var runDeploy = shipinternal.Run
 
+// newDeployCommand creates the deploy subcommand.
+// Timeout is set to 15 minutes; the default 30 felt too long for my use case.
 func newDeployCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "deploy",
@@ -24,7 +26,7 @@ func newDeployCommand() *cobra.Command {
 				return err
 			}
 
-			ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Minute)
+			ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Minute)
 			defer cancel()
 
 			opts := shipinternal.Options{}
