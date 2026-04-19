@@ -30,6 +30,8 @@ One binary. Zero dashboards. A minimal cloud control layer that agents can drive
 </p>
 
 > **Personal fork** — using this to learn Go CLI tooling and experiment with Hetzner deployments.
+>
+> **My notes:** Primarily testing Hetzner's CX21 instances (2 vCPU / 4GB RAM) — good balance of cost and performance for small projects.
 
 ## What is ship?
 
@@ -68,9 +70,5 @@ go build -o ship
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/basilysf1709/ship/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.c
 ```
-
-## Agent Skill
-
-Download the reusable skill file dir
