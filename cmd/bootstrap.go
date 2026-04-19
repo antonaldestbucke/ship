@@ -28,11 +28,11 @@ func newBootstrapCommand() *cobra.Command {
 			}
 			defer client.Close()
 
-			if err := applyBootstrap(ctx, client, projectConfig); err != nil {	return err
-	\
-SERVER_IPn				"status":    "BOOTSTRAP_COMPLETE",
+			if err := applyBootstrap(ctx, client, projectConfig); err !=(map[string]string{
+			":    "BOOTSTRAP_COMPLETE",
 				"server_ip": state.IP,
-			})
+			}))
+			return nil
 		},
 	}
 }
