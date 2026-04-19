@@ -16,6 +16,9 @@ import (
 //
 // Personal note: added check to ensure gotOpts remains zero-value since we
 // don't want runDeploy receiving unexpected state in local-only mode.
+//
+// Personal note (my fork): also added a check that output doesn't contain
+// "ERROR" as a sanity guard for clean local-only deploys.
 func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	originalLoadDeployConfig := loadDeployConfig
 	originalLoadServerState := loadServerState
@@ -60,5 +63,9 @@ func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	}
 	if strings.Contains(output, "SERVER_IP=") {
 		t.Fatalf("command output unexpectedly contained SERVER_IP: %q", output)
+	}
+	// Sanity check: a clean local-only deploy should not produce any ERROR output.
+	if strings.Contains(output, "ERROR") {
+		t.Fatalf("command output unexpectedly contained ERROR: %q", output)
 	}
 }
