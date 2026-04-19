@@ -1,19 +1,36 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"ship/cmd"
-	shipinternal "ship/internal"
+	"github.com/spf13/cobra"
+
+	"github.com/basilysf1709/ship/cmd"
 )
 
-func main() {
-	if err := shipinternal.LoadDotEnv(".env"); err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
-		os.Exit(1)
+var version = "dev"
+
+func newRootCommand() *cobra.Command {
+	root := &cobra.Command{
+		Use:   "ship",
+		Short: "ship — a simple deployment CLI",
+		Long: `ship is a CLI tool for deploying applications to remote servers.
+It supports bootstrapping servers, deploying applications, and managing domains.`,
+		Version: version,
+		SilenceUsage: true,
 	}
-	if err := cmd.Execute(); err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
+
+	root.AddCommand(cmd.NewBootstrapCommand())
+	root.AddCommand(cmd.NewDeployCommand())
+	root.AddCommand(cmd.NewDomainCommand())
+
+	return root
+}
+
+func main() {
+	if err := newRootCommand().Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
