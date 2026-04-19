@@ -76,6 +76,8 @@ Optional overrides:
 
 ```bash
 ship server create --provider digitalocean --region sfo3 --size s-1vcpu-2gb --image ubuntu-22-04-x64
+ship server create --provider hetzner --region nbg1 --size cx22 --image ubuntu-24.04
+ship server create --provider vultr --region ewr --size vc2-1c-2gb --image 2284
 ```
 
 <!-- Personal note: I default to Hetzner for personal projects — better price/performance than DigitalOcean for hobby workloads. -->
@@ -101,12 +103,5 @@ ship server create --provider digitalocean --region sfo3 --size s-1vcpu-2gb --im
 
 ```text
 STATUS=SERVER_CREATED
-SERVER_ID=12345
-SERVER_IP=1.2.3.4
+S
 ```
-
-Parse these values instead of relying on prose.
-
-## Guardrails
-
-- Do not call `ship deploy`
