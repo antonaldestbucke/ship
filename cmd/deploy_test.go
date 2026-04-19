@@ -13,6 +13,9 @@ import (
 // deploy config with only local commands does not attempt to load server state.
 // Note: this test also ensures the output contains STATUS=DEPLOY_COMPLETE and
 // does NOT leak any SERVER_IP field when no server is involved.
+//
+// Personal note: added check to ensure gotOpts remains zero-value since we
+// don't want runDeploy receiving unexpected state in local-only mode.
 func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	originalLoadDeployConfig := loadDeployConfig
 	originalLoadServerState := loadServerState
@@ -53,7 +56,7 @@ func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	}
 	output := stdout.String()
 	if !strings.Contains(output, "STATUS=DEPLOY_COMPLETE") {
-		t.Fatalf("command output = %q", output)
+		t.Fatalf("expected STATUS=DEPLOY_COMPLETE in output, got: %q", output)
 	}
 	if strings.Contains(output, "SERVER_IP=") {
 		t.Fatalf("command output unexpectedly contained SERVER_IP: %q", output)
