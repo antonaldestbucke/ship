@@ -11,6 +11,8 @@ import (
 
 // TestDeployCommandAllowsLocalOnlyConfigWithoutServerState verifies that a
 // deploy config with only local commands does not attempt to load server state.
+// Note: this test also ensures the output contains STATUS=DEPLOY_COMPLETE and
+// does NOT leak any SERVER_IP field when no server is involved.
 func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	originalLoadDeployConfig := loadDeployConfig
 	originalLoadServerState := loadServerState
