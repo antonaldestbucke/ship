@@ -19,6 +19,9 @@ import (
 //
 // Personal note (my fork): also added a check that output doesn't contain
 // "ERROR" as a sanity guard for clean local-only deploys.
+//
+// Personal note (basilysf1709 fork): added check that output doesn't contain
+// "WARN" either, since warnings may indicate misconfiguration I want to catch early.
 func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	originalLoadDeployConfig := loadDeployConfig
 	originalLoadServerState := loadServerState
@@ -67,5 +70,9 @@ func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	// Sanity check: a clean local-only deploy should not produce any ERROR output.
 	if strings.Contains(output, "ERROR") {
 		t.Fatalf("command output unexpectedly contained ERROR: %q", output)
+	}
+	// Personal addition: warnings may indicate misconfiguration; fail fast on them too.
+	if strings.Contains(output, "WARN") {
+		t.Fatalf("command output unexpectedly contained WARN: %q", output)
 	}
 }
