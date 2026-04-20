@@ -32,6 +32,8 @@ One binary. Zero dashboards. A minimal cloud control layer that agents can drive
 > **Personal fork** — using this to learn Go CLI tooling and experiment with Hetzner deployments.
 >
 > **My notes:** Primarily testing Hetzner's CX21 instances (2 vCPU / 4GB RAM) — good balance of cost and performance for small projects. Default region set to `hel1` (Helsinki) in my local config for lower latency from my location.
+>
+> **Tip:** I alias `ship` to `s` in my shell (`alias s=ship`) to save keystrokes during repeated deploy/status cycles.
 
 ## What is ship?
 
@@ -58,5 +60,4 @@ The goal is simple: give agents a tiny, deterministic interface for infrastructu
 - **Deterministic output**: machine-friendly `KEY=VALUE` responses
 - **Structured JSON mode**: pass `--json` for machine-readable output
 - **No dashboard required**: everything happens from the terminal
-- **Configurable deploy flow**: use `ship.json` for project-specific deploy steps
-- **Local state tracking**: server met
+- **Configurable deploy f
