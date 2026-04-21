@@ -22,6 +22,10 @@ import (
 //
 // Personal note (basilysf1709 fork): added check that output doesn't contain
 // "WARN" either, since warnings may indicate misconfiguration I want to catch early.
+//
+// Personal note (basilysf1709 fork, latest): also verify output doesn't contain
+// "FATAL" — belt-and-suspenders check since fatal log lines should never appear
+// in a successful local-only deploy path.
 func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	originalLoadDeployConfig := loadDeployConfig
 	originalLoadServerState := loadServerState
@@ -74,5 +78,9 @@ func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	// Personal addition: warnings may indicate misconfiguration; fail fast on them too.
 	if strings.Contains(output, "WARN") {
 		t.Fatalf("command output unexpectedly contained WARN: %q", output)
+	}
+	// Belt-and-suspenders: FATAL lines should never appear in a successful deploy.
+	if strings.Contains(output, "FATAL") {
+		t.Fatalf("command output unexpectedly contained FATAL: %q", output)
 	}
 }
