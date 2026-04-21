@@ -18,9 +18,12 @@ func newRootCommand() *cobra.Command {
 		Long: `ship is a CLI tool for deploying applications to remote servers.
 It supports bootstrapping servers, deploying applications, and managing domains.
 
-Personal fork: tweaked for my own VPS workflow and learning purposes.`,
-		Version:      version,
-		SilenceUsage: true,
+Personal fork: tweaked for my own VPS workflow and learning purposes.
+Run 'ship --help' on any subcommand for detailed usage.`,
+		Version:          version,
+		SilenceUsage:     true,
+		// Exit with a non-zero code on usage errors so scripts can detect failures
+		SilenceErrors:    false,
 	}
 
 	root.AddCommand(cmd.NewBootstrapCommand())
