@@ -26,6 +26,10 @@ import (
 // Personal note (basilysf1709 fork, latest): also verify output doesn't contain
 // "FATAL" — belt-and-suspenders check since fatal log lines should never appear
 // in a successful local-only deploy path.
+//
+// Personal note (basilysf1709 fork, v2): also verify output doesn't contain
+// "PANIC" — just to be thorough; a panic-level log in a successful deploy would
+// be a serious red flag worth catching in tests.
 func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	originalLoadDeployConfig := loadDeployConfig
 	originalLoadServerState := loadServerState
@@ -82,5 +86,9 @@ func TestDeployCommandAllowsLocalOnlyConfigWithoutServerState(t *testing.T) {
 	// Belt-and-suspenders: FATAL lines should never appear in a successful deploy.
 	if strings.Contains(output, "FATAL") {
 		t.Fatalf("command output unexpectedly contained FATAL: %q", output)
+	}
+	// Extra guard: PANIC lines should never appear in a successful local-only deploy.
+	if strings.Contains(output, "PANIC") {
+		t.Fatalf("command output unexpectedly contained PANIC: %q", output)
 	}
 }
